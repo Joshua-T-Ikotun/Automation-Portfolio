@@ -1,0 +1,294 @@
+{
+  "name": "AI-Powered Sales Call Prep & Account Briefing System",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -16,
+        112
+      ],
+      "id": "fc40629d-d4fa-4523-8f53-0b765a922916",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1eyl4eqCAy2qkRfx_ReCOQwbxjdY1N0wXcDZt7vgxI84",
+          "mode": "list",
+          "cachedResultName": "AI-Powered Sales Call Prep & Account Briefing System",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1eyl4eqCAy2qkRfx_ReCOQwbxjdY1N0wXcDZt7vgxI84/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1539551405,
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1eyl4eqCAy2qkRfx_ReCOQwbxjdY1N0wXcDZt7vgxI84/edit#gid=1539551405"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Call Scheduled Date",
+              "lookupValue": "={{ $json.date }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        432,
+        112
+      ],
+      "id": "7c3eebb3-3944-4c4e-85f4-427b15dfc993",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "aMUzh4ylN1iQSalh",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=CRM RECORD\n\nContact Name: {{ $json['Contact Name'] }}\n\nCompany: {{ $json.Company }}\n\nDeal Stage: {{ $json['Deal Stage'] }}\n\nDeal Value: {{ $json['Deal Value'] }}{{ $json.Currency }}\n\nLast Contact Date: {{ $json['Last Contact Date'] }}\n\nFree-text Notes: {{ $json.Notes }}\n\nCall Schedule Time: {{ $json['Call Scheduled Time'] }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "systemMessage": "=You are a sales call preparation assistant. You will receive a contact's CRM record, including their company, deal stage, deal value, last contact date, and free-text notes from past interactions.\n\nYour task is to write a concise pre-call briefing covering the following sections, in this order:\n\n1. WHO YOU'RE TALKING TO\nSummarize the contact and company in one or two sentences.\n\n2. DEAL STATUS\nState the current deal stage, deal value, and how long it has been since last contact.\n\n3. KEY CONTEXT\nPull out the most important points from the notes field: anything the rep needs to remember, concerns raised, commitments made, or preferences mentioned.\n\n4. SUGGESTED TALKING POINTS\nSuggest 2-3 specific things the rep should bring up on this call, based on the deal stage and notes. Be specific to this contact, not generic sales advice.\n\n5. CALL SCHEDULE\nMention the scheduled time for the call for awareness.\n\nRules:\n- Base everything only on the data provided. Do not invent details not present in the notes or CRM fields.\n- Write in a direct, scannable style. Short sentences. No filler.\n- Do not use markdown symbols like asterisks or hashtags, since this will be inserted directly into a Slack message.\n- Keep the entire briefing under 200 words."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        656,
+        112
+      ],
+      "id": "dcfb904b-d221-46fb-8bb9-a2887a7f7acf",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Jj05xAFibMYXnCFg",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BET7VB4VB",
+          "mode": "list",
+          "cachedResultName": "sales"
+        },
+        "text": "=Sales Call Briefing\n\nContact: {{ $('Get row(s) in sheet').item.json['Contact Name'] }} — {{ $('Get row(s) in sheet').item.json.Company }}\nDeal Stage: {{ $('Get row(s) in sheet').item.json['Deal Stage'] }}\nDeal Value: {{ $('Get row(s) in sheet').item.json.Currency }} {{ $('Get row(s) in sheet').item.json['Deal Value'] }}\nCall Time: {{ $('Get row(s) in sheet').item.json['Call Scheduled Time'] }}\n\n{{ $('Get row(s) in sheet').item.json.Notes }}\n\n\nLast Contact: {{ $('Get row(s) in sheet').item.json['Last Contact Date'] }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        1456,
+        208
+      ],
+      "id": "a4c8da97-ad1e-4530-861c-d62158e6fe0f",
+      "name": "Send a message",
+      "webhookId": "e8dc4f5b-d6ed-4c17-a0fb-7b39070f80bb",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "mgdONQomrvFw62Zr",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// This code:\n// 1. Reads the AI-generated response from content.parts[0].text.\n// 2. Processes multiple AI response items dynamically.\n// 3. Extracts the complete \"WHO YOU'RE TALKING TO\" section.\n// 4. Extracts the complete \"DEAL STATUS\" section.\n// 5. Extracts the contact name and company.\n// 6. Extracts the deal stage, deal value, and last contact date.\n// 7. Extracts the complete \"KEY CONTEXT\" section.\n// 8. Extracts the complete \"SUGGESTED TALKING POINTS\" section.\n// 9. Extracts the scheduled call time.\n// 10. Calculates the notification time as exactly 30 minutes before the call.\n// 11. Calculates how many minutes remain until the notification time.\n// 12. If today's call time has passed, treats the call as tomorrow's call.\n// 13. Ignores thoughtSignature and other unnecessary fields.\n// 14. Returns clean, individually mappable JSON fields.\n\nconst items = $input.all();\n\nreturn items.map((item) => {\n  const data = item.json;\n\n  // Get the AI-generated text\n  const text = data?.content?.parts?.[0]?.text || \"\";\n\n  // Extract sections\n  const whoYoureTalkingTo =\n    text.match(\n      /WHO YOU'?RE TALKING TO\\s*([\\s\\S]*?)(?=\\n\\s*DEAL STATUS)/i\n    )?.[1]?.trim() || \"\";\n\n  const dealStatus =\n    text.match(\n      /DEAL STATUS\\s*([\\s\\S]*?)(?=\\n\\s*KEY CONTEXT)/i\n    )?.[1]?.trim() || \"\";\n\n  const keyContext =\n    text.match(\n      /KEY CONTEXT\\s*([\\s\\S]*?)(?=\\n\\s*SUGGESTED TALKING POINTS)/i\n    )?.[1]?.trim() || \"\";\n\n  const suggestedTalkingPoints =\n    text.match(\n      /SUGGESTED TALKING POINTS\\s*([\\s\\S]*?)(?=\\n\\s*CALL SCHEDULE)/i\n    )?.[1]?.trim() || \"\";\n\n  const scheduledTime =\n    text.match(\n      /CALL SCHEDULE[\\s\\S]*?(\\d{1,2}):(\\d{2})/i\n    );\n\n  const scheduledHour = scheduledTime\n    ? parseInt(scheduledTime[1], 10)\n    : null;\n\n  const scheduledMinute = scheduledTime\n    ? parseInt(scheduledTime[2], 10)\n    : null;\n\n  // Extract contact name and company\n  const contactMatch = whoYoureTalkingTo.match(\n    /(?:speaking with\\s+)?([A-Za-zÀ-ÿ'-]+(?:\\s+[A-Za-zÀ-ÿ'-]+)*)\\s+from\\s+(.+?)(?:\\s+is\\s+|\\.\\s*$|\\s*$)/i\n  );\n\n  let contactName = \"\";\n  let company = \"\";\n\n  if (contactMatch) {\n    contactName = contactMatch[1].trim();\n    company = contactMatch[2].trim();\n  }\n\n  // Extract deal stage\n  let dealStage =\n    dealStatus.match(\n      /deal\\s+stage\\s+is\\s+(.+?)(?:\\.|,|$)/i\n    )?.[1]?.trim() || \"\";\n\n  if (!dealStage) {\n    dealStage =\n      dealStatus.match(\n        /deal\\s+is\\s+in\\s+the\\s+(.+?)\\s+stage/i\n      )?.[1]?.trim() || \"\";\n  }\n\n  // Extract deal value\n  const dealValueMatch = dealStatus.match(\n    /(?:deal\\s+value\\s+is|valued\\s+at)\\s+([\\d,]+(?:\\.\\d+)?)\\s*USD/i\n  );\n\n  const dealValue = dealValueMatch\n    ? parseFloat(dealValueMatch[1].replace(/,/g, \"\"))\n    : null;\n\n  // Extract currency\n  const currency = /USD/i.test(dealStatus) ? \"USD\" : \"\";\n\n  // Extract last contact\n  const lastContact =\n    dealStatus.match(\n      /last\\s+contact\\s+was\\s+(?:on\\s+)?(.+?)(?:\\.|$)/i\n    )?.[1]?.trim() || \"\";\n\n  // Calculate scheduled call and notification time\n  let scheduledDateTime = null;\n  let notificationDateTime = null;\n  let notificationTime = \"\";\n  let minutesRemaining = null;\n\n  if (\n    scheduledHour !== null &&\n    scheduledMinute !== null\n  ) {\n    const now = new Date();\n\n    // Start with today's date\n    scheduledDateTime = new Date(now);\n\n    scheduledDateTime.setHours(\n      scheduledHour,\n      scheduledMinute,\n      0,\n      0\n    );\n\n    // If today's call time has already passed,\n    // schedule it for tomorrow.\n    if (scheduledDateTime <= now) {\n      scheduledDateTime.setDate(\n        scheduledDateTime.getDate() + 1\n      );\n    }\n\n    // Notification is exactly 30 minutes before the call\n    notificationDateTime = new Date(scheduledDateTime);\n\n    notificationDateTime.setMinutes(\n      notificationDateTime.getMinutes() - 30\n    );\n\n    notificationTime = notificationDateTime.toLocaleTimeString(\n      \"en-GB\",\n      {\n        hour: \"2-digit\",\n        minute: \"2-digit\",\n        hour12: false\n      }\n    );\n\n    // Minutes remaining until notification time\n    minutesRemaining = Math.ceil(\n      (notificationDateTime.getTime() - now.getTime()) /\n        (1000 * 60)\n    );\n  }\n\n  return {\n    json: {\n      // Complete original sections\n      whoYoureTalkingTo,\n      dealStatus,\n      keyContext,\n      suggestedTalkingPoints,\n\n      // Extracted contact information\n      contactName,\n      company,\n\n      // Extracted deal information\n      dealStage,\n      dealValue,\n      currency,\n      lastContact,\n\n      // Call schedule\n      scheduledTime:\n        scheduledTime\n          ? `${String(scheduledHour).padStart(2, \"0\")}:${String(\n              scheduledMinute\n            ).padStart(2, \"0\")}`\n          : \"\",\n\n      notificationTime,\n      scheduledDateTime:\n        scheduledDateTime\n          ? scheduledDateTime.toISOString()\n          : null,\n\n      notificationDateTime:\n        notificationDateTime\n          ? notificationDateTime.toISOString()\n          : null,\n\n      minutesRemaining\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        112
+      ],
+      "id": "29c2336d-10b0-4e62-91bd-e2f799cc085d",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "sendTo": "Joshuatikotun@gmail.com",
+        "subject": "Upcoming Call - Client Brief & Key Details",
+        "emailType": "text",
+        "message": "=Hey, you have a call coming up in 30 minutes.\n\nClient: {{ $('Code in JavaScript').item.json.contactName }} from {{ $('Code in JavaScript').item.json.company }}\nTime: {{ $('Code in JavaScript').item.json.scheduledTime }}\n\nHere is your briefing:\n{{ $('Code in JavaScript').item.json.whoYoureTalkingTo }}\n\n{{ $('Code in JavaScript').item.json.dealStatus }}\n\n{{ $('Code in JavaScript').item.json.keyContext }}\n\n{{ $('Code in JavaScript').item.json.suggestedTalkingPoints }}\n\nGood luck on the call.",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1456,
+        16
+      ],
+      "id": "ea2e72e6-06e4-4e8e-938e-4489a59b0ee7",
+      "name": "Send a message1",
+      "webhookId": "0d7354e8-e55a-44ba-91a1-e3c0f29c256c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qQyTlk2zd5ntgVbx",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      date: new Date().toISOString().split(\"T\")[0]\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        112
+      ],
+      "id": "49a6bf6a-c949-47ae-bde1-657a04b4fdeb",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.minutesRemaining }}",
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1232,
+        112
+      ],
+      "id": "f5c919ed-c422-490c-80a0-2777967d5fd7",
+      "name": "Wait",
+      "webhookId": "b67e9eac-d996-47f6-8800-d5ac4a1d6274"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message1": {
+      "main": [
+        []
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "Africa/Lagos",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "76a84a9b-0fce-4080-8720-16b714f0e991",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9be227d2be040d3818c4884245cdf42348b37e3fab9f8e6e95822621d82d486c"
+  },
+  "nodeGroups": [],
+  "id": "dBNDBxu5vkssGVEZ",
+  "tags": []
+}
